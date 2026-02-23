@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universe Network</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;color:white;overflow:hidden;background:black}
+
+/* BLACK HOLE CANVAS */
+#hole{position:fixed;inset:0;z-index:0}
+
+/* ANIMATED STARS */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{
+  position:absolute;width:2px;height:2px;background:white;border-radius:50%;
+  animation:twinkle var(--duration) ease-in-out infinite;animation-delay:var(--delay);
+}
+@keyframes twinkle{
+  0%,100%{opacity:.3;transform:scale(1)}
+  50%{opacity:1;transform:scale(1.5)}
+}
+
+/* LANDING SCREEN */
+#landing{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  z-index:10;background:transparent;cursor:pointer;
+}
+#landing.hidden{opacity:0;pointer-events:none;transform:scale(.85);transition:.7s}
+
+.title{
+  font-size:clamp(3rem,10vw,7rem);
+  background:linear-gradient(90deg,#60a5fa,#a78bfa,#f472b6);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 40px rgba(147,197,253,.9);
+  animation:float 3s ease-in-out infinite;
+}
+
+@keyframes float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-10px)}
+}
+
+.subtitle{margin-top:20px;color:#bfdbfe;font-size:18px}
+
+/* SHARED PAGE STYLES */
+.page{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;overflow:auto;
+  padding:20px;opacity:0;pointer-events:none;transition:.7s;z-index:10;
+}
+.page.visible{opacity:1;pointer-events:auto}
+
+/* GAME LIBRARY */
+.topbar{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center}
+.topbar input, .topbar select, .topbar button{
+  padding:8px 12px;border:none;border-radius:8px;font-size:14px;
+}
+.topbar input{background:rgba(30,30,60,.9);color:white;border:1px solid rgba(120,160,255,.3)}
+.topbar select{background:rgba(30,30,60,.9);color:white;border:1px solid rgba(120,160,255,.3)}
+.topbar button{cursor:pointer;background:#60a5fa;color:black;font-weight:bold;transition:.2s}
+.topbar button:hover{background:#93c5fd;transform:scale(1.05)}
+
+.proxy-toggle{
+  display:flex;align-items:center;gap:8px;background:rgba(30,30,60,.9);
+  padding:8px 12px;border-radius:8px;border:1px solid rgba(120,160,255,.3);
+}
+.proxy-toggle input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:16px;max-width:1200px;width:100%;
+}
+
+.card{
+  background:rgba(20,20,40,.7);
+  border:1px solid rgba(120,160,255,.3);
+  border-radius:14px;
+  padding:15px;
+  cursor:pointer;
+  transition:.25s;
+  position:relative;
+  text-align:center;
+  backdrop-filter:blur(12px);
+}
+.card:hover{transform:scale(1.08);border-color:#60a5fa;box-shadow:0 0 20px rgba(96,165,250,.5)}
+.card .icon{font-size:3rem;margin-bottom:8px}
+.card .name{margin-top:8px;font-weight:bold;font-size:14px}
+
+.star{position:absolute;top:6px;right:8px;font-size:18px;cursor:pointer;transition:.2s}
+.star:hover{transform:scale(1.2)}
+.star.active{color:gold}
+
+.proxy-badge{
+  position:absolute;bottom:8px;right:8px;
+  background:rgba(34,197,94,.8);color:black;
+  padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;
+}
+
+/* PROXY SEARCH PAGE */
+.header{text-align:center;margin:40px 0 20px}
+.header h1{
+  font-size:clamp(2rem,6vw,4rem);
+  background:linear-gradient(90deg,#60a5fa,#a78bfa,#f472b6);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:10px;
+  animation:float 3s ease-in-out infinite;
+}
+.header p{color:#93c5fd;font-size:1.1rem}
+
+.search-section{
+  background:rgba(20,20,40,.7);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(120,160,255,.3);
+  border-radius:20px;
+  padding:30px;
+  margin:20px 0;
+  box-shadow:0 10px 40px rgba(0,0,0,.3);
+  max-width:1200px;
+  width:100%;
+}
+
+.search-box{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.search-box input{
+  flex:1;min-width:250px;padding:15px 20px;font-size:16px;
+  border:2px solid rgba(120,160,255,.3);border-radius:12px;
+  background:rgba(10,10,30,.8);color:white;outline:none;transition:.3s;
+}
+.search-box input:focus{border-color:#60a5fa;box-shadow:0 0 20px rgba(96,165,250,.3)}
+.search-box button{
+  padding:15px 30px;font-size:16px;font-weight:bold;
+  border:none;border-radius:12px;cursor:pointer;transition:.3s;color:black;
+}
+
+.btn-primary{background:linear-gradient(135deg,#60a5fa,#3b82f6)}
+.btn-primary:hover{background:linear-gradient(135deg,#93c5fd,#60a5fa);transform:scale(1.05)}
+.btn-secondary{background:linear-gradient(135deg,#a78bfa,#8b5cf6)}
+.btn-secondary:hover{background:linear-gradient(135deg,#c4b5fd,#a78bfa);transform:scale(1.05)}
+
+.options{
+  display:flex;gap:15px;align-items:center;flex-wrap:wrap;
+  margin-top:15px;padding-top:15px;border-top:1px solid rgba(120,160,255,.2);
+}
+.checkbox-group{display:flex;align-items:center;gap:8px;color:#93c5fd}
+.checkbox-group input[type="checkbox"]{width:18px;height:18px;cursor:pointer}
+
+.results-section{margin:30px 0;max-width:1200px;width:100%}
+.results-header{font-size:1.5rem;margin-bottom:20px;color:#93c5fd;display:flex;align-items:center;gap:10px}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+
+.result-card{
+  background:rgba(20,20,40,.7);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(120,160,255,.3);
+  border-radius:15px;
+  padding:20px;
+  cursor:pointer;
+  transition:.3s;
+  position:relative;
+  overflow:hidden;
+}
+.result-card:hover{transform:translateY(-5px);border-color:#60a5fa;box-shadow:0 10px 30px rgba(96,165,250,.3)}
+.result-card::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(96,165,250,.2),transparent);
+  transition:.5s;
+}
+.result-card:hover::before{left:100%}
+
+.result-icon{font-size:2.5rem;margin-bottom:10px}
+.result-title{font-size:1.2rem;font-weight:bold;margin-bottom:8px;color:white}
+.result-url{font-size:.9rem;color:#60a5fa;word-break:break-all;margin-bottom:10px}
+.result-description{font-size:.9rem;color:#93c5fd;line-height:1.5}
+
+.quick-links{margin:30px 0;max-width:1200px;width:100%}
+.quick-links h3{font-size:1.5rem;margin-bottom:20px;color:#93c5fd}
+.quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px}
+
+.quick-card{
+  background:rgba(20,20,40,.7);backdrop-filter:blur(12px);
+  border:1px solid rgba(120,160,255,.3);border-radius:12px;
+  padding:20px;text-align:center;cursor:pointer;transition:.3s;
+}
+.quick-card:hover{transform:scale(1.05);border-color:#60a5fa;box-shadow:0 0 20px rgba(96,165,250,.4)}
+.quick-card .icon{font-size:2.5rem;margin-bottom:10px}
+.quick-card .name{font-size:.95rem;font-weight:bold;color:white}
+
+.note{
+  background:rgba(96,165,250,.1);border-left:4px solid #60a5fa;
+  padding:15px;margin:20px 0;border-radius:8px;color:#93c5fd;font-size:.9rem;
+}
+
+.loading{text-align:center;padding:40px;color:#93c5fd}
+.spinner{
+  border:4px solid rgba(96,165,250,.2);border-top:4px solid #60a5fa;
+  border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;
+  margin:0 auto 20px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.back-btn{
+  position:fixed;top:20px;right:20px;padding:10px 20px;
+  background:rgba(20,20,40,.9);border:1px solid rgba(120,160,255,.3);
+  border-radius:10px;color:white;font-weight:bold;transition:.3s;z-index:100;
+  cursor:pointer;border:none;
+}
+.back-btn:hover{background:rgba(96,165,250,.2);border-color:#60a5fa}
+</style>
+</head>
+<body>
+
+<canvas id="hole"></canvas>
+<div class="stars" id="stars"></div>
+
+<!-- LANDING -->
+<div id="landing">
+  <h1 class="title">UNIVERSE NETWORK</h1>
+  <div class="subtitle">✨ Click anywhere to enter ✨</div>
+</div>
+
+<!-- GAME LIBRARY PAGE -->
+<div id="library" class="page">
+  <div class="topbar">
+    <input id="search" placeholder="🔍 Search games">
+    <select id="sort">
+      <option value="name">Sort A-Z</option>
+      <option value="fav">Favorites first</option>
+    </select>
+    <div class="proxy-toggle">
+      <input type="checkbox" id="proxyToggle">
+      <label for="proxyToggle">🛡️ Proxy Mode</label>
+    </div>
+    <button onclick="toggleMusic()">🎵 Music</button>
+    <button onclick="showProxySearch()">🔍 Proxy Search</button>
+    <button onclick="admin()">➕ Add Game</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- PROXY SEARCH PAGE -->
+<div id="proxySearch" class="page">
+  <button class="back-btn" onclick="showLibrary()">← Back to Games</button>
+  
+  <div class="header">
+    <h1>🌌 Universe Proxy Search</h1>
+    <p>Search for games, enter URLs, or browse popular sites</p>
+  </div>
+
+  <div class="search-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="Enter URL (https://example.com) or search term (minecraft games)"
+        autocomplete="off"
+      >
+      <button class="btn-primary" onclick="handleSearch()">🔍 Search</button>
+      <button class="btn-secondary" onclick="handleDirect()">🚀 Go Direct</button>
+    </div>
+
+    <div class="options">
+      <div class="checkbox-group">
+        <input type="checkbox" id="useProxy" checked>
+        <label for="useProxy">🛡️ Use Proxy</label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="aboutBlank" checked>
+        <label for="aboutBlank">🔒 about:blank Mode</label>
+      </div>
+    </div>
+
+    <div class="note">
+      💡 <strong>Tip:</strong> Enter a full URL to open a site directly, or type keywords to search for games and websites on Google.
+    </div>
+  </div>
+
+  <div class="results-section" id="resultsSection" style="display:none">
+    <div class="results-header">
+      <span>🎯 Search Results</span>
+    </div>
+    <div class="results-grid" id="resultsGrid"></div>
+  </div>
+
+  <div class="quick-links">
+    <h3>⚡ Quick Access - Popular Games & Sites</h3>
+    <div class="quick-grid" id="quickGrid"></div>
+  </div>
+</div>
+
+<audio id="music" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6a5c6e7f7b.mp3">
+</audio>
+
+<script>
+// ================== PAGE NAVIGATION ==================
+const landing=document.getElementById("landing");
+const library=document.getElementById("library");
+const proxySearchPage=document.getElementById("proxySearch");
+
+function showLibrary(){
+  proxySearchPage.classList.remove("visible");
+  library.classList.add("visible");
+}
+
+function showProxySearch(){
+  library.classList.remove("visible");
+  proxySearchPage.classList.add("visible");
+}
+
+landing.onclick=()=>{
+  landing.classList.add("hidden");
+  setTimeout(()=>{
+    library.classList.add("visible");
+    render();
+  },100);
+};
+
+// ================== BLACK HOLE ANIMATION ==================
+const c=document.getElementById("hole"),ctx=c.getContext("2d");
+function resize(){c.width=innerWidth;c.height=innerHeight}
+addEventListener("resize",resize);resize();
+
+let time=0;
+const particles=[];
+
+for(let layer=0;layer<3;layer++){
+  for(let i=0;i<400;i++){
+    const angle=Math.random()*Math.PI*2;
+    const radius=100+Math.random()*Math.min(innerWidth,innerHeight)*.6;
+    particles.push({
+      angle:angle,
+      radius:radius,
+      speed:.0005+Math.random()*.002,
+      size:(.5+Math.random()*2)*(1+layer*.3),
+      layer:layer,
+      brightness:Math.random(),
+      orbitOffset:Math.random()*Math.PI*2
+    });
+  }
+}
+
+function BH(){
+  time+=0.01;
+  ctx.fillStyle="rgba(0,0,5,.15)";
+  ctx.fillRect(0,0,c.width,c.height);
+  
+  const cx=c.width/2;
+  const cy=c.height/2;
+  
+  particles.forEach(p=>{
+    p.angle+=p.speed*(1.5-p.radius/1000);
+    p.radius*=.9995;
+    
+    if(p.radius<50){
+      p.radius=Math.min(c.width,c.height)*.6;
+      p.angle=Math.random()*Math.PI*2;
+    }
+    
+    const tilt=Math.sin(time*.2)*.15;
+    const orbit=Math.sin(p.angle+p.orbitOffset)*tilt;
+    
+    let x=cx+Math.cos(p.angle)*p.radius;
+    let y=cy+Math.sin(p.angle)*p.radius*(.3+orbit);
+    
+    const temp=Math.max(0,(500-p.radius)/500);
+    const hot=Math.min(255,temp*255);
+    const cool=Math.max(0,255-temp*200);
+    const brightness=.3+Math.sin(time+p.brightness*10)*.7;
+    const size=p.size*(1+temp*.5);
+    
+    const glow=ctx.createRadialGradient(x,y,0,x,y,size*3);
+    glow.addColorStop(0,`rgba(${hot+150},${cool+100},255,${brightness*.3})`);
+    glow.addColorStop(.5,`rgba(${hot},${cool},200,${brightness*.1})`);
+    glow.addColorStop(1,"transparent");
+    ctx.fillStyle=glow;
+    ctx.fillRect(x-size*3,y-size*3,size*6,size*6);
+    
+    ctx.beginPath();
+    ctx.arc(x,y,size,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${hot+200},${cool+150},255,${brightness})`;
+    ctx.fill();
+  });
+  
+  const eventHorizon=ctx.createRadialGradient(cx,cy,0,cx,cy,80);
+  eventHorizon.addColorStop(0,"rgba(0,0,0,1)");
+  eventHorizon.addColorStop(.7,"rgba(10,5,20,.95)");
+  eventHorizon.addColorStop(1,"transparent");
+  ctx.fillStyle=eventHorizon;
+  ctx.beginPath();
+  ctx.arc(cx,cy,80,0,Math.PI*2);
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.arc(cx,cy,35,0,Math.PI*2);
+  ctx.fillStyle="black";
+  ctx.fill();
+  
+  const hawking=ctx.createRadialGradient(cx,cy,35,cx,cy,90);
+  hawking.addColorStop(0,"transparent");
+  hawking.addColorStop(.5,`rgba(120,160,255,${.1+Math.sin(time)*.05})`);
+  hawking.addColorStop(1,"transparent");
+  ctx.fillStyle=hawking;
+  ctx.beginPath();
+  ctx.arc(cx,cy,90,0,Math.PI*2);
+  ctx.fill();
+  
+  requestAnimationFrame(BH);
+}
+BH();
+
+// Create stars
+const starsContainer=document.getElementById('stars');
+for(let i=0;i<50;i++){
+  const star=document.createElement('div');
+  star.className='star';
+  star.style.left=Math.random()*100+'%';
+  star.style.top=Math.random()*100+'%';
+  star.style.setProperty('--duration',(Math.random()*3+2)+'s');
+  star.style.setProperty('--delay',Math.random()*2+'s');
+  starsContainer.appendChild(star);
+}
+
+// ================== GAMES ==================
+const games=[
+  { name: 'Truffled', icon: '🍄', url: 'https://waguri.pingoneando.me' },
+  { name: 'Travel Booking', icon: '✈️', url: 'https://travelbooking.hotelconsuladoinn.com' },
+  { name: 'Void Network V5', icon: '🌀', url: 'https://ready.graphicon.org' },
+  { name: 'Portmaster', icon: '🎮', url: 'https://portmaster.games/games.html' },
+  { name: 'Red Corner', icon: '🔴', url: 'https://isthistheend.gmsgroup.app' },
+  { name: 'Call It', icon: '📞', url: 'https://call.it.smasesorias.cl/' },
+  { name: 'Ted Proxy', icon: '🧸', url: 'https://sifu.tedbuy.com' },
+  { name: 'Balatro', icon: '🃏', url: 'https://smdpschool.org/iframe.html' },
+  { name: 'Truffeled 2', icon: '📝', url: 'https://waguri.snapframework.com/g' },
+  { name: 'Kazwire', icon: '🔌', url: 'https://math.intasarn.com' },
+  { name: 'APOR v4', icon: '♨️', url: 'https://iluvchromebooks.freeddns.us' },
+  { name: 'waves', icon: '🌊', url: 'https://za.mreasandiego.com' },
+  { name: 'Arian Proxy', icon: '🌧️', url: 'https://arain.neighborhoodcloud.com/' },
+  { name: 'UniUB v4', icon: '🎴', url: 'https://wildcard.khsonthespot.com/?authuser=0#home' }
+];
+
+let custom=JSON.parse(localStorage.getItem("customGames")||"[]");
+games.push(...custom);
+
+let favs=JSON.parse(localStorage.getItem("favs")||"[]");
+
+const grid=document.getElementById("grid");
+const search=document.getElementById("search");
+const sort=document.getElementById("sort");
+const proxyToggle=document.getElementById("proxyToggle");
+
+proxyToggle.checked=localStorage.getItem("proxyMode")==="true";
+
+proxyToggle.addEventListener("change",()=>{
+  localStorage.setItem("proxyMode",proxyToggle.checked);
+  render();
+});
+
+search.addEventListener("input",render);
+sort.addEventListener("change",render);
+
+function render(){
+  grid.innerHTML="";
+  let list=[...games];
+  
+  if(search.value){
+    list=list.filter(g=>g.name.toLowerCase().includes(search.value.toLowerCase()));
+  }
+  
+  if(sort.value==="fav"){
+    list.sort((a,b)=>{
+      const aFav=favs.includes(a.name)?1:0;
+      const bFav=favs.includes(b.name)?1:0;
+      return bFav-aFav;
+    });
+  }else{
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  
+  list.forEach(g=>{
+    const card=document.createElement("div");
+    card.className="card";
+    
+    const icon=document.createElement("div");
+    icon.className="icon";
+    icon.textContent=g.icon||"🎮";
+    
+    const name=document.createElement("div");
+    name.className="name";
+    name.textContent=g.name;
+    
+    const star=document.createElement("div");
+    star.className="star"+(favs.includes(g.name)?" active":"");
+    star.textContent="★";
+    star.onclick=e=>{
+      e.stopPropagation();
+      if(favs.includes(g.name)){
+        favs=favs.filter(x=>x!==g.name);
+      }else{
+        favs.push(g.name);
+      }
+      localStorage.setItem("favs",JSON.stringify(favs));
+      render();
+    };
+    
+    if(proxyToggle.checked){
+      const badge=document.createElement("div");
+      badge.className="proxy-badge";
+      badge.textContent="PROXY";
+      card.appendChild(badge);
+    }
+    
+    card.appendChild(star);
+    card.appendChild(icon);
+    card.appendChild(name);
+    card.onclick=()=>openGame(g);
+    grid.appendChild(card);
+  });
+  
+  if(list.length===0){
+    grid.innerHTML="<p style='opacity:.6;text-align:center;width:100%'>No games found</p>";
+  }
+}
+
+function proxyUrl(url){
+  const proxies=[
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://cors-anywhere.herokuapp.com/${url}`,
+    url
+  ];
+  return proxies[0];
+}
+
+function openGame(game){
+  const useProxy=proxyToggle.checked;
+  const gameUrl=useProxy?proxyUrl(game.url):game.url;
+  
+  const win=window.open("about:blank","_blank");
+  if(!win||win.closed||typeof win.closed==='undefined'){
+    window.location.href=gameUrl;
+    return;
+  }
+  
+  const html=`<!DOCTYPE html>
+<html><head>
+<title>${game.name}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:black}
+  iframe{border:none;width:100%;height:100%;display:block}
+  .loader{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    color:white;font-family:Arial;text-align:center;
+  }
+  .spinner{
+    border:4px solid rgba(255,255,255,.1);
+    border-top:4px solid white;
+    border-radius:50%;
+    width:40px;height:40px;
+    animation:spin 1s linear infinite;
+    margin:0 auto 20px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head><body>
+<div class="loader">
+  <div class="spinner"></div>
+  <div>Loading ${game.name}...</div>
+</div>
+<iframe src="${gameUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation"></iframe>
+<script>
+  window.addEventListener('message',e=>{
+    if(e.data==='loaded') document.querySelector('.loader').style.display='none';
+  });
+  setTimeout(()=>{
+    document.querySelector('.loader').style.display='none';
+  },3000);
+</script>
+</body></html>`;
+  
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function toggleMusic(){
+  const m=document.getElementById("music");
+  if(m.paused){
+    m.play();
+    alert("🎵 Music started!");
+  }else{
+    m.pause();
+    alert("🔇 Music stopped!");
+  }
+}
+
+function admin(){
+  const pass=prompt("Admin password:");
+  if(pass!=="universe"){
+    alert("❌ Wrong password");
+    return;
+  }
+  
+  const name=prompt("Game name:");
+  if(!name) return;
+  
+  const icon=prompt("Game icon emoji (default: 🎮):")||"🎮";
+  
+  const url=prompt("Game URL:");
+  if(!url) return;
+  
+  const newGame={name,icon,url};
+  custom.push(newGame);
+  localStorage.setItem("customGames",JSON.stringify(custom));
+  games.push(newGame);
+  alert(`✅ ${name} added successfully!`);
+  render();
+}
+
+// ================== PROXY SEARCH PAGE ==================
+const quickLinks=[
+  {name:'Google',icon:'🔍',url:'https://www.google.com'},
+  {name:'YouTube',icon:'📺',url:'https://www.youtube.com'},
+  {name:'Discord',icon:'💬',url:'https://discord.com'},
+  {name:'Reddit',icon:'🤖',url:'https://www.reddit.com'},
+  {name:'GitHub',icon:'🐙',url:'https://github.com'},
+  {name:'Wikipedia',icon:'📚',url:'https://wikipedia.org'},
+  {name:'CoolMathGames',icon:'🎮',url:'https://www.coolmathgames.com'},
+  {name:'Poki',icon:'🎯',url:'https://poki.com'},
+  {name:'Krunker',icon:'🔫',url:'https://krunker.io'},
+  {name:'Shell Shockers',icon:'🥚',url:'https://shellshock.io'},
+  {name:'1v1.LOL',icon:'⚔️',url:'https://1v1.lol'},
+  {name:'Slope',icon:'🎢',url:'https://slope-game.github.io'},
+];
+
+const quickGrid=document.getElementById('quickGrid');
+quickLinks.forEach(link=>{
+  const card=document.createElement('div');
+  card.className='quick-card';
+  card.innerHTML=`
+    <div class="icon">${link.icon}</div>
+    <div class="name">${link.name}</div>
+  `;
+  card.onclick=()=>openInProxy(link.url,link.name);
+  quickGrid.appendChild(card);
+});
+
+function isURL(str){
+  try{
+    new URL(str);
+    return true;
+  }catch{
+    if(str.includes('.')&&!str.includes(' ')){
+      return true;
+    }
+    return false;
+  }
+}
+
+function handleSearch(){
+  const input=document.getElementById('searchInput').value.trim();
+  if(!input){
+    alert('Please enter a URL or search term');
+    return;
+  }
+
+  if(isURL(input)){
+    let url=input;
+    if(!url.startsWith('http')){
+      url='https://'+url;
+    }
+    openInProxy(url,'Direct Link');
+  }else{
+    searchGoogle(input);
+  }
+}
+
+function handleDirect(){
+  const input=document.getElementById('searchInput').value.trim();
+  if(!input){
+    alert('Please enter a URL');
+    return;
+  }
+
+  let url=input;
+  if(isURL(input)){
+    if(!url.startsWith('http')){
+      url='https://'+url;
+    }
+  }else{
+    url=`https://www.google.com/search?q=${encodeURIComponent(input)}`;
+  }
+
+  openInProxy(url,'Search',true);
+}
+
+function searchGoogle(query){
+  const resultsSection=document.getElementById('resultsSection');
+  const resultsGrid=document.getElementById('resultsGrid');
+  
+  resultsSection.style.display='block';
+  resultsGrid.innerHTML='<div class="loading"><div class="spinner"></div><p>Searching...</p></div>';
+
+  setTimeout(()=>{
+    const searchResults=[
+      {
+        icon:'🔍',
+        title:'Search on Google',
+        url:`https://www.google.com/search?q=${encodeURIComponent(query)}`,
+        description:`Search for "${query}" directly on Google and browse all results`
+      },
+      {
+        icon:'🎮',
+        title:'CoolMathGames - '+query,
+        url:`https://www.coolmathgames.com/search?q=${encodeURIComponent(query)}`,
+        description:'Search for games on CoolMathGames'
+      },
+      {
+        icon:'🎯',
+        title:'Poki - '+query,
+        url:`https://poki.com/en/search?q=${encodeURIComponent(query)}`,
+        description:'Search for games on Poki'
+      },
+      {
+        icon:'📺',
+        title:'YouTube - '+query,
+        url:`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+        description:'Find videos and gameplay on YouTube'
+      },
+      {
+        icon:'🎲',
+        title:'Crazy Games - '+query,
+        url:`https://www.crazygames.com/search?q=${encodeURIComponent(query)}`,
+        description:'Search for browser games on Crazy Games'
+      },
+      {
+        icon:'👾',
+        title:'Kongregate - '+query,
+        url:`https://www.kongregate.com/games?search=${encodeURIComponent(query)}`,
+        description:'Browse indie games on Kongregate'
+      }
+    ];
+
+    resultsGrid.innerHTML='';
+    searchResults.forEach(result=>{
+      const card=document.createElement('div');
+      card.className='result-card';
+      card.innerHTML=`
+        <div class="result-icon">${result.icon}</div>
+        <div class="result-title">${result.title}</div>
+        <div class="result-url">${result.url}</div>
+        <div class="result-description">${result.description}</div>
+      `;
+      card.onclick=()=>openInProxy(result.url,result.title);
+      resultsGrid.appendChild(card);
+    });
+  },500);
+}
+
+function openInProxy(url,title,forceDirect=false){
+  const useProxy=document.getElementById('useProxy').checked&&!forceDirect;
+  const aboutBlank=document.getElementById('aboutBlank').checked;
+
+  let finalUrl=url;
+  if(!finalUrl.startsWith('http')){
+    finalUrl='https://'+finalUrl;
+  }
+
+  if(useProxy){
+    finalUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent(finalUrl)}`;
+  }
+
+  if(aboutBlank){
+    const win=window.open('about:blank','_blank');
+    if(!win||win.closed||typeof win.closed==='undefined'){
+      window.location.href=finalUrl;
+      return;
+    }
+
+    const html=`<!DOCTYPE html>
+<html><head>
+<title>${title||'Universe Proxy'}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:black}
+  iframe{border:none;width:100%;height:100%;display:block}
+  .controls{
+    position:fixed;top:0;left:0;right:0;
+    background:rgba(10,10,30,.95);
+    padding:10px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    border-bottom:2px solid #60a5fa;
+    z-index:1000;
+  }
+  .controls input{
+    flex:1;
+    padding:8px;
+    border:1px solid #60a5fa;
+    border-radius:6px;
+    background:rgba(0,0,0,.8);
+    color:white;
+    font-size:14px;
+  }
+  .controls button{
+    padding:8px 16px;
+    border:none;
+    border-radius:6px;
+    background:#60a5fa;
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
+  }
+  .controls button:hover{background:#93c5fd}
+  iframe{margin-top:45px;height:calc(100% - 45px)}
+  .loader{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    color:white;font-family:Arial;text-align:center;
+  }
+  .spinner{
+    border:4px solid rgba(255,255,255,.1);
+    border-top:4px solid white;
+    border-radius:50%;
+    width:40px;height:40px;
+    animation:spin 1s linear infinite;
+    margin:0 auto 20px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head><body>
+<div class="controls">
+  <input type="text" id="urlBar" value="${url}" placeholder="Enter URL">
+  <button onclick="go()">Go</button>
+  <button onclick="reload()">🔄</button>
+  <button onclick="back()">◀</button>
+  <button onclick="forward()">▶</button>
+</div>
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <div>Loading...</div>
+</div>
+<iframe id="frame" src="${finalUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation"></iframe>
+<script>
+  const frame=document.getElementById('frame');
+  const loader=document.getElementById('loader');
+  const urlBar=document.getElementById('urlBar');
+  
+  frame.onload=()=>{loader.style.display='none'};
+  setTimeout(()=>{loader.style.display='none'},5000);
+  
+  function go(){
+    let url=urlBar.value;
+    if(!url.startsWith('http'))url='https://'+url;
+    ${useProxy?`url='https://api.allorigins.win/raw?url='+encodeURIComponent(url);`:''}
+    frame.src=url;
+    loader.style.display='block';
+  }
+  
+  function reload(){frame.src=frame.src}
+  function back(){history.back()}
+  function forward(){history.forward()}
+  
+  urlBar.addEventListener('keypress',e=>{
+    if(e.key==='Enter')go();
+  });
+</script>
+</body></html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  }else{
+    window.open(finalUrl,'_blank');
+  }
+}
+
+document.getElementById('searchInput').addEventListener('keypress',e=>{
+  if(e.key==='Enter')handleSearch();
+});
+
+// ================== PANIC MODE ==================
+document.addEventListener("keydown",e=>{
+  if(e.key.toLowerCase()==="p"){
+    location.replace("https://www.google.com");
+  }
+});
+
+render();
+</script>
+</body>
+</html>
